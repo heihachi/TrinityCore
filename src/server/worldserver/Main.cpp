@@ -239,7 +239,7 @@ extern int main(int argc, char** argv)
         triniChatThread = new boost::thread(TrinityChatThread);
     }
     else
-        TC_LOG_ERROR("misc", "*** TriniChat Is Disabled. *");
+        TC_LOG_INFO("misc", "*** TriniChat Is Disabled. *");
 
     // Launch the worldserver listener socket
     uint16 worldPort = uint16(sWorld->getIntConfig(CONFIG_PORT_WORLD));
