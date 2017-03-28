@@ -1,27 +1,28 @@
 /*
-* Copyright (C) 2008-2017 Trinity <http://www.trinitycore.org/>
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-*/
+ * Copyright (C) 2008-2017 Trinity <http://www.trinitycore.org/>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
 
 #ifndef _IRC_CLIENT_H
 #define _IRC_CLIENT_H
 
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/strand.hpp>
-#include "boost/thread.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread.hpp>
 #include "Player.h"
 #include "IRCLog.h"
 #include "IRCCmd.h"
@@ -46,6 +47,13 @@ enum CLINES
     LEAVE_WOW = 4,
     LEAVE_IRC = 5,
     CHANGE_NICK = 6
+};
+struct Channels
+{
+    std::string channel;
+    std::string password;
+    bool split;
+    int rank;
 };
 // CACTION is used by the Handle_WoW_Channel function
 // this function is called in channel.h when a player
@@ -73,7 +81,7 @@ public:
     // IRCClient Destructor
     ~IRCClient();
     // ZThread Entry
-    void run();
+    bool run();
     static IRCClient* instance(boost::asio::io_service* ioService = nullptr)
     {
         static IRCClient instance;
@@ -87,13 +95,15 @@ public:
         return &instance;
     }
     // Send a message to the specified IRC channel
-    void Send_IRC_Channel(std::string sChannel, std::string sMsg, bool NoPrefix = false, std::string nType = "PRIVMSG");
+    void Send_IRC_Channel(std::string sChannel, std::string sMsg, bool NoPrefix = false, std::string nType = "PRIVMSG", uint32 team = 0);
 public:
     // AH Function
     void AHCancel(uint64 itmid, std::string itmnme, std::string plname, uint32 faction);
     //bool BeenToGMI(float posx, float posy, std::string player, std::string from);
     // IRCClient active
     bool Active;
+    // check if we are running
+    bool Running;
     // Connected to IRC
     bool Connected;
     // Socket indentifier
@@ -104,7 +114,7 @@ public:
     // This function is called in ChatHandler.cpp and processes the chat from game to IRC
     void Send_WoW_IRC(Player *plr, std::string Channel, std::string Msg);
     // Sends a message to all players on the specified channel
-    void Send_WoW_Channel(const char *channel, std::string chat);
+    void Send_WoW_Channel(const char *channel, std::string chat, uint32 team = 0);
     // Send a system message to all players
     void Send_WoW_System(std::string Message);
     // Send a message to the specified IRC channel
@@ -116,7 +126,7 @@ public:
         std::size_t start = msg.find(var);
         if (start != std::string::npos)
             msg.replace(start, var.length(), val);
-            return msg;
+        return msg;
     }
     void Send_WoW_Player(string sPlayer, string sMsg);
     void Send_WoW_Player(Player *plr, string sMsg);
@@ -187,6 +197,8 @@ public:
     std::string _irc_chan[MAX_CONF_CHANNELS];
     // Game Channel list
     std::string _wow_chan[MAX_CONF_CHANNELS];
+    // split chats
+    std::array<Channels, MAX_CONF_CHANNELS> splitChannels;
     // AutoJoin Options
     int ajoin;
     string ajchan;
@@ -262,6 +274,7 @@ public:
     // MAX_SCRIPT_INST
 
     IRCLog iLog;
+    IRCClient* thread;
 
 private:
     // Returns default chatline based on enum CLINES
